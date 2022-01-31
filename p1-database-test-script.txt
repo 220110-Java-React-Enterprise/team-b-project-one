@@ -1,0 +1,22 @@
+use project_one;
+
+create table customers(
+	customer_id int auto_increment primary key,
+	first_name varchar(100),
+	last_name varchar(100)
+);
+
+create table tickets(
+	ticket_id int auto_increment primary key,
+	departure_location varchar(100),
+	destination_loaction varchar(100),
+	customer_id int,
+	foreign key (customer_id) references customers(customer_id)
+);
+alter table tickets auto_increment = 101;
+
+select * from customers 
+left join tickets on customers.customer_id=tickets.ticket_id;
+
+select * from customers;
+select * from tickets;
