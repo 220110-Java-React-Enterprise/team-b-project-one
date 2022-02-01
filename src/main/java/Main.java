@@ -8,7 +8,7 @@ public class Main {
         try {
             Connection connection = ConnectionManager.getConnection();
             //ViewManager.getViewManager().navigate("welcome");
-            System.out.println("Connection successful");
+
         } catch (Exception e) {
             e.printStackTrace();
         }

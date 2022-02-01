@@ -1,9 +1,10 @@
 package Util;
 
 import java.sql.Connection;
-import java.util.Properties;
 import java.sql.DriverManager;
 import java.util.Scanner;
+import java.io.File;
+import java.io.FileNotFoundException;
 
 public class ConnectionManager {
 
@@ -13,19 +14,27 @@ public class ConnectionManager {
     }
 
     public static Connection getConnection() {
-        Scanner sc = new Scanner(System.in);
         if (connection == null) {
-            System.out.println("Hostname: ");
-            String hostname = sc.nextLine();
-            System.out.println("Port: ");
-            String port = sc.nextLine();
-            System.out.println("Database Name: ");
-            String DBName = sc.nextLine();
-            System.out.println("UserName: ");
-            String userName = sc.nextLine();
-            System.out.println("Password: ");
-            String password = sc.nextLine();
-            connection = connect(hostname, port, DBName, userName, password);
+            try {
+                File file = new File("C:\\Users\\majaw\\IdeaProjects\\repos\\project-one-props\\props.txt");
+                Scanner reader = new Scanner(file);
+                while (reader.hasNextLine()) {
+                    String hostname = reader.nextLine();
+                    String port = reader.nextLine();
+                    String DBName = reader.nextLine();
+                    String userName = reader.nextLine();
+                    String password = reader.nextLine();
+                    connection = connect(hostname, port, DBName, userName, password);
+                    System.out.println("Connection successful");
+                }
+                reader.close();
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+
+
+
+
         }
         return connection;
     }
