@@ -3,8 +3,8 @@ package Annotations;
 import java.lang.annotation.*;
 
 @Documented
-@Target(ElementType.FIELD)
+@Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface Column {
+public @interface Entity {
     String name();
 }

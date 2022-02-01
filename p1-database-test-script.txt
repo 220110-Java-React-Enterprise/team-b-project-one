@@ -9,7 +9,7 @@ create table customers(
 create table tickets(
 	ticket_id int auto_increment primary key,
 	departure_location varchar(100),
-	destination_loaction varchar(100),
+	destination_location varchar(100),
 	customer_id int,
 	foreign key (customer_id) references customers(customer_id)
 );
