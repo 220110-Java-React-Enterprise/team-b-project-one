@@ -7,7 +7,7 @@ public class Main {
     public static void main(String[] args) {
         try {
             Connection connection = ConnectionManager.getConnection();
-            //ViewManager.getViewManager().navigate("welcome");
+
 
         } catch (Exception e) {
             e.printStackTrace();
