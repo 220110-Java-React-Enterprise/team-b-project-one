@@ -16,7 +16,7 @@ public class ConnectionManager {
     public static Connection getConnection() {
         if (connection == null) {
             try {
-                File file = new File("C:\\Users\\majaw\\IdeaProjects\\repos\\project-one-props\\props.txt");
+                File file = new File("G:\\Java Projects\\props.txt");
                 Scanner reader = new Scanner(file);
                 while (reader.hasNextLine()) {
                     String hostname = reader.nextLine();

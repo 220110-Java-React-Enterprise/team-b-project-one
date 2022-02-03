@@ -21,7 +21,7 @@ public class Main {
 
         ORM orm = new ORM();
         Customers customer = new Customers();
-        orm.createTable(customer);
+        orm.getTableFormat(customer);
 
     }
 }

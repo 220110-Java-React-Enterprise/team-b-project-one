@@ -7,5 +7,8 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 
 public @interface ForeignKey {
-    String name();
+    String columnName();
+    String type();
+    String referenceTableName();
+    String referenceTableColumn();
 }
