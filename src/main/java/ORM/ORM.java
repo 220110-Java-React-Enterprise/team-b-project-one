@@ -7,42 +7,54 @@ import Annotations.Table;
 import Persistence.FieldType;
 import Util.ConnectionManager;
 import org.mariadb.jdbc.Driver;
-
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.sql.*;
+import java.util.Hashtable;
 import java.util.Locale;
 
 public class ORM {
 
-//    private String tableName;
-//    private String primaryKey;
-//    private String primaryKeyType;
-//    private String[] columnNameArray;
-//    private String[] foreignKeyArray;
+    private String tableName;
+    private String primaryKey;
+    private String primaryKeyType;
+    private String[] columnNameArray;
+    private String[] foreignKeyArray;
+
     private Connection connection = ConnectionManager.getConnection();
     private String dbName = "ProjectOne";
+
+
     public  ORM(){
 
     }
 
-//    ORM (String tableName, String primaryKey, String primaryKeyType, String[] columnNameArray, String[] foreignKeyArray){
-//        setTableName(tableName);
-//        setPrimaryKey(primaryKey);
-//        setPrimaryKeyType(primaryKeyType);
-//        setColumnNameArray(columnNameArray);
-//        setForeignKeyArray(foreignKeyArray);
-//    }
 
-    public void getTableFormat(Object obj){
+
+
+    public void ORM(Object obj, String action){
+        columnNameArray = new String[2*obj.getClass().getDeclaredFields().length];
+        foreignKeyArray = new String[4*obj.getClass().getDeclaredFields().length];
+        getTableFormat(obj);
+
+        switch (action){
+            case "create":
+                createTable();
+            case "insert":
+                insertToTable(obj);
+        }
+
+
+    }
+    private void getTableFormat(Object obj){
         // check if object has annotations, if so use to parse
         // else parse in a different way.
 
-        String tableName;
-        String[] columns= new String[2*obj.getClass().getDeclaredFields().length];
-        String primaryKey = "";
-        String primaryKeyDataType = "";
-        String[] foreignKey= new String[4*obj.getClass().getDeclaredFields().length];
+//        String tableName;
+//        String[] columns= new String[2*obj.getClass().getDeclaredFields().length];
+//        String primaryKey = "";
+//        String primaryKeyDataType = "";
+//        String[] foreignKey= new String[4*obj.getClass().getDeclaredFields().length];
 
 
         // Initial class (top level) name
@@ -69,49 +81,34 @@ public class ORM {
         for (Field field : obj.getClass().getDeclaredFields()){
             if (field.isAnnotationPresent(PrimaryKey.class)){
                 primaryKey = field.getAnnotation(PrimaryKey.class).name();
-                primaryKeyDataType = field.getAnnotation(PrimaryKey.class).type();
+                primaryKeyType = field.getAnnotation(PrimaryKey.class).type();
             }else if (field.isAnnotationPresent(ForeignKey.class)) {
-                foreignKey[fkIterator] = field.getAnnotation(ForeignKey.class).columnName();
-                foreignKey[fkIterator+1] = field.getAnnotation(ForeignKey.class).type();
-                foreignKey[fkIterator+2] = field.getAnnotation(ForeignKey.class).referenceTableName();
-                foreignKey[fkIterator+3] = field.getAnnotation(ForeignKey.class).referenceTableColumn();
+                foreignKeyArray[fkIterator] = field.getAnnotation(ForeignKey.class).columnName();
+                foreignKeyArray[fkIterator+1] = field.getAnnotation(ForeignKey.class).type();
+                foreignKeyArray[fkIterator+2] = field.getAnnotation(ForeignKey.class).referenceTableName();
+                foreignKeyArray[fkIterator+3] = field.getAnnotation(ForeignKey.class).referenceTableColumn();
                 fkIterator += 4;
             }else if (field.isAnnotationPresent(Column.class)){
-                columns[colIterator] = field.getAnnotation(Column.class).name();
-                columns[colIterator+1] = field.getAnnotation(Column.class).type();
+                columnNameArray[colIterator] = field.getAnnotation(Column.class).name();
+                columnNameArray[colIterator+1] = field.getAnnotation(Column.class).type();
                 colIterator+=2;
             }else{
-                columns[colIterator] = field.getName();
-                columns[colIterator+1] = field.getGenericType().getTypeName().replaceFirst("java.lang.", "");
+                columnNameArray[colIterator] = field.getName();
+                columnNameArray[colIterator+1] = field.getGenericType().getTypeName().replaceFirst("java.lang.", "");
                 colIterator+=2;
             }
 
 
         }
 
-        // Print to console to see if results match what is expected.
+//           if (!checkIfTableExists(tableName.toLowerCase(Locale.ROOT))){
+//                createTable(tableName,primaryKey,primaryKeyDataType,columns,foreignKey);
+//           }
 
-//            System.out.println("Table name:  " + tableName);
-//            System.out.println("Primary key:  " + primaryKey);
-//            System.out.println("Primary key type:  " + primaryKeyDataType);
-//            System.out.println("Foreign key(s): ");
-//            for (int i = 0; i < foreignKey.length; i++) {
-//                System.out.print(foreignKey[i] + " ");
-//            }
-//            System.out.println("\nColumns: ");
-//            for (int i = 0; i < columns.length; i++) {
-//                System.out.print(columns[i] + " ");
-//            }
-
-            // (tableName,primaryKey,primaryKeyDataType,columns,foreignKey)
-            // check if table exists, take care of both situations.
-           if (!checkIfTableExists(tableName.toLowerCase(Locale.ROOT))){
-                createTable(tableName,primaryKey,primaryKeyDataType,columns,foreignKey);
-           }
 
     }
 
-    private void createTable(String tableName, String primaryKey, String primaryKeyType, String[] columnNameArray, String[] foreignKeyArray){
+    private void createTable(){
         String sql = "CREATE TABLE " + tableName.toLowerCase(Locale.ROOT);
         String sqlColumns = " ( ";
 
@@ -145,8 +142,8 @@ public class ORM {
             while (foreignKeyArray[iterator] != null && checkIfTableExists(foreignKeyArray[iterator+2])){
 
                 sqlColumns += ", FOREIGN KEY ( " + foreignKeyArray[iterator] +
-                              ") REFERENCES " + foreignKeyArray[iterator+2] +
-                              "(" + foreignKeyArray[iterator+3] + " )";
+                              " ) REFERENCES " + foreignKeyArray[iterator+2] +
+                              "( " + foreignKeyArray[iterator+3] + " )";
                 iterator += 4;
             }
             sqlColumns = sqlColumns + " ) ";
@@ -167,6 +164,52 @@ public class ORM {
 
     }
 
+    public void insertToTable(Object obj) {
+        // i can retrieve all values in the attribute section,
+        // its stored onto an array and i can use instance of to check
+        // datatype
+        // I should create a function that checks instance type to call
+        // the appropriate prepared statement type.
+        
+        Object[] values = new Object[obj.getClass().getDeclaredFields().length];
+        int iterator = 0;
+
+        for (Field field : obj.getClass().getDeclaredFields()){
+            //NoSuchFieldException
+            field.setAccessible(true);
+
+            try {
+                values[iterator] = field.get(obj);
+                System.out.print(field.getType().getTypeName().replaceFirst("java.lang.", "") + " ");
+                System.out.print(values[iterator]);
+                System.out.println(values[iterator]);
+                iterator++;
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            }
+        }
+
+
+//        String sql = "INSERT INTO "+ tableName + " (";
+//
+//        for (int i =0; i <  obj.getClass().getDeclaredFields().length; i++){
+//
+//        }
+//
+//
+//
+//        int iterator = 0;
+//        while (foreignKeyArray[iterator] != null){
+//            sql += ", ? ?";
+//            iterator += 4;
+//        }
+//        iterator = 0;
+//        while (columnNameArray[iterator] != null){
+//            sql += ", ? ?";
+//            iterator += 2;
+//        }
+    }
+
     private String typeConversion(String type){
         switch (type){
             case "String":
@@ -184,9 +227,12 @@ public class ORM {
             case "Boolean":
             case "boolean":
                 return FieldType.BOOLEAN.name();
+            case "Enum":
+                return FieldType.ENUM.name();
         }return null;
     }
     // returns true if exists, false otherwise.
+
 
     private boolean checkIfTableExists(String tableName){
         String sql = "SELECT * \n" +
@@ -211,48 +257,6 @@ public class ORM {
         }
         return false;
     }
-
-//    public void setTableName(String name){
-//        tableName = name;
-//    }
-//
-//    public String getTableName(){
-//        return tableName;
-//    }
-//
-//    public void setPrimaryKey(String key){
-//        primaryKey = key;
-//    }
-//
-//    public String getPrimaryKey(){
-//        return primaryKey;
-//    }
-//
-//    public void setPrimaryKeyType(String keyType){
-//        primaryKeyType = keyType;
-//    }
-//
-//    public String getPrimaryKeyType(){
-//        return primaryKeyType;
-//    }
-//
-//    public void setColumnNameArray(String[] columns){
-//        columnNameArray = columns;
-//    }
-//
-//    public String[] getColumnNameArray(){
-//        return columnNameArray;
-//    }
-//
-//    public void setForeignKeyArray(String[] fkColumns){
-//        foreignKeyArray = fkColumns;
-//    }
-//
-//    public String[] getForeignKeyArray(){
-//        return foreignKeyArray;
-//    }
-
-
 
 
 

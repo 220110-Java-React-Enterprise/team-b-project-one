@@ -10,11 +10,11 @@ public class Customers {
     @PrimaryKey(name = "customerId", type="int")
     private int customerId;
     @Column(name = "firstName", type= "string")
-    private String firstName;
+    private String firstName = "David";
     @Column(name= "lastName", type="string")
-    private String lastName;
-    private boolean test;
+    private String lastName = "Alvarado";
+    private boolean test = true;
     @ForeignKey(columnName = "fk", type = "int", referenceTableName = "tickets", referenceTableColumn = "ticket_id")
-    public int fk;
+    public int fk=1;
 
 }

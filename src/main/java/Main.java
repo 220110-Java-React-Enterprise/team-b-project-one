@@ -21,7 +21,7 @@ public class Main {
 
         ORM orm = new ORM();
         Customers customer = new Customers();
-        orm.getTableFormat(customer);
+        orm.ORM(customer, "insert");
 
     }
 }
