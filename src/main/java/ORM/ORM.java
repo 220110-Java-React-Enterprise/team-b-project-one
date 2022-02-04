@@ -6,6 +6,8 @@ import Annotations.PrimaryKey;
 import Annotations.Table;
 import Persistence.FieldType;
 import Util.ConnectionManager;
+import org.mariadb.jdbc.Driver;
+
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.sql.*;
@@ -36,7 +38,7 @@ public class ORM {
         // check if object has annotations, if so use to parse
         // else parse in a different way.
 
-        String tableName = "";
+        String tableName;
         String[] columns= new String[2*obj.getClass().getDeclaredFields().length];
         String primaryKey = "";
         String primaryKeyDataType = "";
@@ -89,17 +91,17 @@ public class ORM {
 
         // Print to console to see if results match what is expected.
 
-            System.out.println("Table name:  " + tableName);
-            System.out.println("Primary key:  " + primaryKey);
-            System.out.println("Primary key type:  " + primaryKeyDataType);
-            System.out.println("Foreign key(s): ");
-            for (int i = 0; i < foreignKey.length; i++) {
-                System.out.print(foreignKey[i] + " ");
-            }
-            System.out.println("\nColumns: ");
-            for (int i = 0; i < columns.length; i++) {
-                System.out.print(columns[i] + " ");
-            }
+//            System.out.println("Table name:  " + tableName);
+//            System.out.println("Primary key:  " + primaryKey);
+//            System.out.println("Primary key type:  " + primaryKeyDataType);
+//            System.out.println("Foreign key(s): ");
+//            for (int i = 0; i < foreignKey.length; i++) {
+//                System.out.print(foreignKey[i] + " ");
+//            }
+//            System.out.println("\nColumns: ");
+//            for (int i = 0; i < columns.length; i++) {
+//                System.out.print(columns[i] + " ");
+//            }
 
             // (tableName,primaryKey,primaryKeyDataType,columns,foreignKey)
             // check if table exists, take care of both situations.
@@ -110,113 +112,57 @@ public class ORM {
     }
 
     private void createTable(String tableName, String primaryKey, String primaryKeyType, String[] columnNameArray, String[] foreignKeyArray){
-        String sql = "CREATE TABLE ? ";
-        String sqlColumns = "(";
+        String sql = "CREATE TABLE " + tableName.toLowerCase(Locale.ROOT);
+        String sqlColumns = " ( ";
+
 
         if ((primaryKey != null && primaryKey != "") && (primaryKeyType!= null && primaryKeyType != "")){
-            sqlColumns += "? ?";
-
+            if (typeConversion(primaryKeyType).equals(FieldType.INT.toString())) {
+                sqlColumns += primaryKey + " " + typeConversion(primaryKeyType) + " AUTO_INCREMENT PRIMARY KEY";
+            }else{
+                sqlColumns += primaryKey + " " + typeConversion(primaryKeyType)  + " PRIMARY KEY UNIQUE NOT NULL";
+            }
+            System.out.println("\n" + sql + sqlColumns);
         }else {
-            System.out.println("Error with primary key, either key not given or type not known.");
-            return;
+            sqlColumns += primaryKey + " " + typeConversion(primaryKeyType);
+
         }
 
         int iterator = 0;
         while (foreignKeyArray[iterator] != null){
-            sqlColumns += ", ? ?";
-            iterator += 3;
+            sqlColumns += ", " + foreignKeyArray[iterator] + " " + typeConversion(foreignKeyArray[iterator+1]);
+            iterator += 4;
         }
         iterator = 0;
         while (columnNameArray[iterator] != null){
-            sqlColumns += ", ? ?";
+            sqlColumns += ", " + columnNameArray[iterator] + " " + typeConversion(columnNameArray[iterator+1]);
             iterator += 2;
         }
 
-
-
-
         if (foreignKeyArray[0] != null) {
-            iterator = 2;
-            while (foreignKeyArray[iterator] != null && checkIfTableExists(foreignKeyArray[iterator])){
-                sqlColumns += ", FOREIGN KEY (?) REFERENCES  ?(?)";
-                iterator += 3;
+
+            iterator = 0;
+            while (foreignKeyArray[iterator] != null && checkIfTableExists(foreignKeyArray[iterator+2])){
+
+                sqlColumns += ", FOREIGN KEY ( " + foreignKeyArray[iterator] +
+                              ") REFERENCES " + foreignKeyArray[iterator+2] +
+                              "(" + foreignKeyArray[iterator+3] + " )";
+                iterator += 4;
             }
-            sqlColumns = sqlColumns + ")";
+            sqlColumns = sqlColumns + " ) ";
         }else{
-            sqlColumns = sqlColumns + ")";
+            sqlColumns = sqlColumns + " ) ";
         }
 
         System.out.println("\n" + sql + sqlColumns);
 
         try {
-            PreparedStatement statement = connection.prepareStatement(sql + sqlColumns);
-            int placeCounter = 1;
-            statement.setString(placeCounter, tableName.toLowerCase(Locale.ROOT));
-            placeCounter++;
-            statement.setString(placeCounter, primaryKey);
-            placeCounter++;
-            if (typeConversion(primaryKeyType).equals(FieldType.INT.toString())) {
-                statement.setString(placeCounter, typeConversion(primaryKeyType) + " AUTO_INCREMENT PRIMARY KEY");
-                placeCounter++;
-            }else{
-                statement.setString(placeCounter, typeConversion(primaryKeyType) + " PRIMARY KEY UNIQUE NOT NULL");
-                placeCounter++;
-            }
-
-
-            for (int i = 0; i < foreignKeyArray.length; i+=4){
-                if (foreignKeyArray[i] == null){
-                    break;
-                }else {
-                    statement.setString(placeCounter, foreignKeyArray[i]);
-                    placeCounter++;
-                    statement.setString(placeCounter, typeConversion(foreignKeyArray[i+1]));
-                    placeCounter++;
-                }
-            }
-
-            for (int i = 0; i < columnNameArray.length; i+=2){
-                if (columnNameArray[i] == null){
-                    break;
-                }else {
-                    statement.setString(placeCounter, columnNameArray[i]);
-                    placeCounter++;
-                    statement.setString(placeCounter, typeConversion(columnNameArray[i+1]));
-                    placeCounter++;
-                }
-            }
-
-            // working on the foreign key part....
-            for (int i = 0; i < foreignKeyArray.length; i+=4){
-                if (foreignKeyArray[i] == null || i == foreignKeyArray.length){
-                    break;
-                }else {
-                    statement.setString(placeCounter, foreignKeyArray[i]);
-                    placeCounter++;
-                    statement.setString(placeCounter, foreignKeyArray[i+2]);
-                    placeCounter++;
-                    statement.setString(placeCounter, foreignKeyArray[i+3]);
-                    placeCounter++;
-                }
-            }
-            System.out.println(statement.toString());
+            sql = sql + sqlColumns;
+            PreparedStatement statement = connection.prepareStatement(sql);
             statement.executeUpdate();
-
-
-            if (checkIfTableExists(tableName.toLowerCase(Locale.ROOT))){
-                System.out.println("table succesfully created.");
-            } else{
-                System.out.println("Table not created.");
-            }
-
-
-
-        } catch (SQLException e) {
+        }catch (SQLException e){
             e.printStackTrace();
-            System.out.println("Table not created.");
         }
-
-
 
 
     }

@@ -14,7 +14,7 @@ public class Customers {
     @Column(name= "lastName", type="string")
     private String lastName;
     private boolean test;
-    @ForeignKey(columnName = "fk", type = "String", referenceTableName = "tickets", referenceTableColumn = "ticket_id")
-    public String fk;
+    @ForeignKey(columnName = "fk", type = "int", referenceTableName = "tickets", referenceTableColumn = "ticket_id")
+    public int fk;
 
 }
