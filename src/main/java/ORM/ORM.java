@@ -40,6 +40,8 @@ public class ORM {
                 createTable();
             case "insert":
                 insertToTable(obj);
+            case "delete":
+                deleteFromTable(obj);
         }
 
 
@@ -47,13 +49,6 @@ public class ORM {
     private void getTableFormat(Object obj){
         // check if object has annotations, if so use to parse
         // else parse in a different way.
-
-//        String tableName;
-//        String[] columns= new String[2*obj.getClass().getDeclaredFields().length];
-//        String primaryKey = "";
-//        String primaryKeyDataType = "";
-//        String[] foreignKey= new String[4*obj.getClass().getDeclaredFields().length];
-
 
         // Initial class (top level) name
         if (obj.getClass().isAnnotationPresent(Table.class)) {
@@ -119,59 +114,60 @@ public class ORM {
     }
 
     private void createTable(){
-        String sql = "CREATE TABLE " + tableName.toLowerCase(Locale.ROOT);
-        String sqlColumns = " ( ";
+        if (!checkIfTableExists(tableName)) {
+            String sql = "CREATE TABLE " + tableName.toLowerCase(Locale.ROOT);
+            String sqlColumns = " ( ";
 
 
-        if ((primaryKey != null && primaryKey != "") && (primaryKeyType!= null && primaryKeyType != "")){
-            if (typeConversion(primaryKeyType,false).equals(FieldType.INT.toString())) {
-                sqlColumns += primaryKey + " " + typeConversion(primaryKeyType,false) + " AUTO_INCREMENT PRIMARY KEY";
-            }else{
-                sqlColumns += primaryKey + " " + typeConversion(primaryKeyType,false)  + " PRIMARY KEY UNIQUE NOT NULL";
+            if ((primaryKey != null && primaryKey != "") && (primaryKeyType != null && primaryKeyType != "")) {
+                if (typeConversion(primaryKeyType, false).equals(FieldType.INT.toString())) {
+                    sqlColumns += primaryKey + " " + typeConversion(primaryKeyType, false) + " AUTO_INCREMENT PRIMARY KEY";
+                } else {
+                    sqlColumns += primaryKey + " " + typeConversion(primaryKeyType, false) + " PRIMARY KEY UNIQUE NOT NULL";
+                }
+                System.out.println("\n" + sql + sqlColumns);
+            } else {
+                sqlColumns += primaryKey + " " + typeConversion(primaryKeyType, false);
+
             }
-            System.out.println("\n" + sql + sqlColumns);
-        }else {
-            sqlColumns += primaryKey + " " + typeConversion(primaryKeyType,false);
 
-        }
-
-        int iterator = 0;
-        while (foreignKeyArray[iterator] != null){
-            sqlColumns += ", " + foreignKeyArray[iterator] + " " + typeConversion(foreignKeyArray[iterator+1],false);
-            iterator += 4;
-        }
-        iterator = 0;
-        while (columnNameArray[iterator] != null){
-            sqlColumns += ", " + columnNameArray[iterator] + " " + typeConversion(columnNameArray[iterator+1],false);
-            iterator += 2;
-        }
-
-        if (foreignKeyArray[0] != null) {
-
-            iterator = 0;
-            while (foreignKeyArray[iterator] != null && checkIfTableExists(foreignKeyArray[iterator+2])){
-
-                sqlColumns += ", FOREIGN KEY ( " + foreignKeyArray[iterator] +
-                              " ) REFERENCES " + foreignKeyArray[iterator+2] +
-                              "( " + foreignKeyArray[iterator+3] + " )";
+            int iterator = 0;
+            while (foreignKeyArray[iterator] != null) {
+                sqlColumns += ", " + foreignKeyArray[iterator] + " " + typeConversion(foreignKeyArray[iterator + 1], false);
                 iterator += 4;
             }
-            sqlColumns = sqlColumns + " ) ";
-        }else{
-            sqlColumns = sqlColumns + " ) ";
+            iterator = 0;
+            while (columnNameArray[iterator] != null) {
+                sqlColumns += ", " + columnNameArray[iterator] + " " + typeConversion(columnNameArray[iterator + 1], false);
+                iterator += 2;
+            }
+
+            if (foreignKeyArray[0] != null) {
+
+                iterator = 0;
+                while (foreignKeyArray[iterator] != null && checkIfTableExists(foreignKeyArray[iterator + 2])) {
+
+                    sqlColumns += ", FOREIGN KEY ( " + foreignKeyArray[iterator] +
+                            " ) REFERENCES " + foreignKeyArray[iterator + 2] +
+                            "( " + foreignKeyArray[iterator + 3] + " )";
+                    iterator += 4;
+                }
+                sqlColumns = sqlColumns + " ) ";
+            } else {
+                sqlColumns = sqlColumns + " ) ";
+            }
+
+            System.out.println("\n" + sql + sqlColumns);
+
+            try {
+                sql = sql + sqlColumns;
+                PreparedStatement statement = connection.prepareStatement(sql);
+                statement.executeUpdate();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+
         }
-
-        System.out.println("\n" + sql + sqlColumns);
-
-        try {
-            sql = sql + sqlColumns;
-            PreparedStatement statement = connection.prepareStatement(sql);
-            statement.executeUpdate();
-        }catch (SQLException e){
-            e.printStackTrace();
-        }
-
-
     }
 
     /**
@@ -274,6 +270,54 @@ public class ORM {
 
 
     }
+
+    /**
+     * Function accepts an object and uses its pk value to delete an entire row from the table
+     * it belongs to.
+     * @param obj
+     */
+    private void deleteFromTable(Object obj){
+        String sql = "SHOW KEYS FROM " + tableName + " WHERE Key_name = 'PRIMARY'";
+        Object pkValue = 0;
+        String pkColumnName = "";
+        try {
+            PreparedStatement statement = connection.prepareStatement(sql);
+            ResultSet result = statement.executeQuery();
+            result.next();
+            pkColumnName = result.getString("Column_name");
+
+            for (Field field : obj.getClass().getDeclaredFields()) {
+                if (field.getName().equals(pkColumnName)) {
+                    field.setAccessible(true);
+                    pkValue = field.get(obj);
+                    break;
+                }
+            }
+
+            if (!primaryKey.equals(pkColumnName)) {
+
+                System.out.println("your pk field does not match the pk field in table.");
+                return;
+
+            } else if (pkValue instanceof Integer && (Integer) pkValue != 0) {
+
+                sql = "DELETE FROM " + tableName + " WHERE " + pkColumnName + " = ?";
+                PreparedStatement pkDeleteStatement = connection.prepareStatement(sql);
+                pkDeleteStatement.setInt(1, (Integer) pkValue);
+                pkDeleteStatement.executeUpdate();
+
+            } else {
+
+                System.out.println("Unable to delete object without a primary key.");
+
+            }
+
+            } catch(SQLException | IllegalAccessException e){
+                e.printStackTrace();
+            }
+
+        }
+
 
     private String typeConversion(String type, Boolean reverse){
         if (reverse == null){
