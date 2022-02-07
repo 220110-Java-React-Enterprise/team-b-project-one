@@ -48,6 +48,9 @@ public class ORM {
             case "search":
                 getFromTable(obj);
                 break;
+            case "update":
+                updateTable(obj);
+                break;
         }
 
 
@@ -444,6 +447,95 @@ public class ORM {
                 System.out.println("Unable to retrieve object from table.");
             }
             return obj;
+        }
+
+        private void updateTable(Object obj) {
+            Object[][] colNameAndValue = new Object[obj.getClass().getDeclaredFields().length][2];
+
+            int iterator = 0;
+            Object pkValue = null;
+            if (checkIfTableExists(tableName)){
+                for (Field field : obj.getClass().getDeclaredFields()){
+                    // Sets private fields accessible which allow me to retrieve info.
+                    try {
+                        field.setAccessible(true);
+                        colNameAndValue[iterator][0] = field.getName();
+                        colNameAndValue[iterator][1] = field.get(obj);
+
+                        if (field.getName().equals(primaryKey)){
+                                pkValue = field.get(obj);
+                            }
+
+
+                        iterator++;
+                    } catch (IllegalAccessException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                String sql = " UPDATE " + tableName + " SET ";
+                for (int i =1; i < colNameAndValue.length; i++){
+                    if ((i+1 ) == colNameAndValue.length){
+                        sql += colNameAndValue[i][0] + "=? ";
+                    }else {
+                        sql += colNameAndValue[i][0] + "=?, ";
+                    }
+                }
+
+                sql += " WHERE " + primaryKey + "= ?";
+
+                System.out.println(sql);
+
+                try {
+                    PreparedStatement statement = connection.prepareStatement(sql);
+
+                    for (int i = 0; i < colNameAndValue.length; i++){
+
+                        switch (colNameAndValue[i][1].getClass().getTypeName().replaceFirst("java.lang.", "")) {
+                            case "String":
+                            case "string":
+                            case "Enum":
+                            case "enum":
+                                if (i==0){ statement.setString(colNameAndValue.length, pkValue.toString());}
+                                else {statement.setString(i, colNameAndValue[i][1].toString());}
+                                continue;
+                            case "Character":
+                            case "char":
+                                if (i==0){statement.setString(colNameAndValue.length,String.valueOf(pkValue.toString()));}
+                                else {statement.setString(i, String.valueOf(colNameAndValue[i][1]));}
+                                continue;
+                            case "Integer":
+                            case "int":
+                                if (i==0){statement.setInt(colNameAndValue.length, ((int) pkValue));}
+                                else{statement.setInt(i, ((int) colNameAndValue[i][1]));}
+                                continue;
+                            case "Float":
+                            case "float":
+                            case "double":
+                                if(i==0){statement.setFloat(colNameAndValue.length, ((float) pkValue));}
+                                else{statement.setFloat(i, ((float) colNameAndValue[i][1]));}
+                                continue;
+                            case "Boolean":
+                            case "boolean":
+                                if(i==0){statement.setBoolean(colNameAndValue.length, ((boolean) pkValue));}
+                                else{statement.setBoolean(i, ((boolean) colNameAndValue[i][1]));};
+                        }
+
+                    }
+
+                    System.out.println(statement);
+                    statement.executeUpdate();
+
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+
+
+            }else{
+                System.out.println("Table with that name does not exist, maybe try creating one first.");
+            }
+
+
         }
 
     private String typeConversion(String type, Boolean reverse){

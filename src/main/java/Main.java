@@ -24,7 +24,7 @@ public class Main {
        //orm.ormEntry(customer, "create");
        //orm.ormEntry(customer, "insert");
         //orm.ormEntry(customer,"delete");
-        orm.ormEntry(customer, "search");
-
+        //orm.ormEntry(customer, "search");
+        orm.ormEntry(customer,"update");
     }
 }

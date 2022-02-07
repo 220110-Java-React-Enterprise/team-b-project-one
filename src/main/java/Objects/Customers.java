@@ -10,7 +10,7 @@ public class Customers {
     @PrimaryKey(name = "customerId", type="int")
     private int customerId=5;
     @Column(name = "firstName", type= "string")
-    private String firstName = "David";
+    private String firstName = "Tony";
     @Column(name= "lastName", type="string")
     private String lastName = "Alvarado";
     private boolean test = true;
