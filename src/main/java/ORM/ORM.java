@@ -30,7 +30,7 @@ public class ORM {
 
 
 
-    public void ORM(Object obj, String action){
+    public void ormEntry(Object obj, String action){
         columnNameArray = new String[2*obj.getClass().getDeclaredFields().length];
         foreignKeyArray = new String[4*obj.getClass().getDeclaredFields().length];
         getTableFormat(obj);
@@ -38,10 +38,16 @@ public class ORM {
         switch (action){
             case "create":
                 createTable();
+                break;
             case "insert":
                 insertToTable(obj);
+                break;
             case "delete":
                 deleteFromTable(obj);
+                break;
+            case "search":
+                getFromTable(obj);
+                break;
         }
 
 
@@ -276,7 +282,7 @@ public class ORM {
      * it belongs to.
      * @param obj
      */
-    private void deleteFromTable(Object obj){
+    private void deleteFromTable(Object obj) {
         String sql = "SHOW KEYS FROM " + tableName + " WHERE Key_name = 'PRIMARY'";
         Object pkValue = 0;
         String pkColumnName = "";
@@ -297,7 +303,6 @@ public class ORM {
             if (!primaryKey.equals(pkColumnName)) {
 
                 System.out.println("your pk field does not match the pk field in table.");
-                return;
 
             } else if (pkValue instanceof Integer && (Integer) pkValue != 0) {
 
@@ -308,16 +313,138 @@ public class ORM {
 
             } else {
 
-                System.out.println("Unable to delete object without a primary key.");
+                switch (pkValue.getClass().getTypeName().replaceFirst("java.lang.", "")) {
+                    case "String":
+                    case "string":
+                    case "Enum":
+                    case "enum":
+                        statement.setString(1, pkValue.toString());
+                    case "Character":
+                    case "char":
+                        statement.setString(1, String.valueOf(pkValue));
+                    case "Float":
+                    case "float":
+                    case "double":
+                        statement.setFloat(1, ((float) pkValue));
+                    case "Boolean":
+                    case "boolean":
+                        statement.setBoolean(1, ((boolean) pkValue));
 
+                }
             }
-
-            } catch(SQLException | IllegalAccessException e){
-                e.printStackTrace();
-            }
-
+        } catch (SQLException | IllegalAccessException e) {
+            e.printStackTrace();
         }
+    }
 
+        private Object getFromTable(Object obj) {
+            Object[][] colNameAndDataType = new Object[obj.getClass().getDeclaredFields().length][2];
+            Object pkValue = null;
+            int iterator = 0;
+            if (checkIfTableExists(tableName)) {
+                for (Field field : obj.getClass().getDeclaredFields()) {
+                    // Sets private fields accessible which allow me to retrieve info.
+                        field.setAccessible(true);
+                        colNameAndDataType[iterator][0] = field.getName();
+                        if (field.getName().equals(primaryKey)){
+                            try {
+                                pkValue = field.get(obj);
+                            } catch (IllegalAccessException e) {
+                                System.out.println("Problem trying to get value for search query.");
+                                e.printStackTrace();
+                            }
+                        }
+                        iterator++;
+                }
+
+                String sql = "SELECT * FROM " + tableName + " WHERE " + primaryKey + " = ?";
+                try {
+                    PreparedStatement statement = connection.prepareStatement(sql);
+                    switch (pkValue.getClass().getTypeName().replaceFirst("java.lang.", "")) {
+                        case "Integer":
+                        case "int":
+                            statement.setInt(1, (int)pkValue);
+                            break;
+                        case "String":
+                        case "string":
+                        case "Enum":
+                        case "enum":
+                            statement.setString(1, pkValue.toString());
+                            break;
+                        case "Character":
+                        case "char":
+                            statement.setString(1, String.valueOf(pkValue));
+                            break;
+                        case "Float":
+                        case "float":
+                        case "double":
+                            statement.setFloat(1, ((float) ((Integer)pkValue/1.0f)));
+                            break;
+                        case "Boolean":
+                        case "boolean":
+                            System.out.println("bool switch");
+                            statement.setBoolean(1, (Integer) pkValue > 0);
+                            break;
+                        }
+
+                    System.out.println(statement);
+                    ResultSet result = statement.executeQuery();
+                    result.next();
+                    iterator = 0;
+                    Object obj2 = obj;
+
+                    for (Field field : obj.getClass().getDeclaredFields()){
+                        field.setAccessible(true);
+                        String currentDataType = field.getType().getTypeName().replaceFirst("java.lang.", "");
+                        System.out.println(currentDataType);
+                        switch (currentDataType){
+                            case "Integer":
+                            case "int":
+                                System.out.print(field.getName() + " " + result.getInt(field.getName()) + "\n");
+                                field.set(obj2,result.getInt(field.getName()));
+                                continue;
+                            case "String":
+                            case "string":
+                            case "Enum":
+                            case "enum":
+                            case "Character":
+                            case "char":
+                                System.out.println(field.getName());
+                                System.out.println(result.getString(field.getName()));
+                                System.out.print(field.getName() + " " + result.getString(field.getName()) + "\n");
+                                field.set(obj2,result.getString(field.getName()));
+                                continue;
+                            case "Float":
+                            case "float":
+                            case "double":
+                                System.out.print(field.getName() + " " + result.getFloat(field.getName()) + "\n");
+                                field.set(obj2, result.getFloat(field.getName()));
+                                continue;
+                            case "Boolean":
+                            case "boolean":
+                                System.out.print(field.getName() + " " + result.getBoolean(field.getName()) + "\n");
+                                field.set(obj2, result.getBoolean(field.getName()));
+                        }
+                        iterator++;
+                        System.out.println("np2");
+                        if (iterator == colNameAndDataType.length){
+                            System.out.println("np3");
+                            break;}
+                    }
+
+
+                    return obj2;
+
+                    } catch(SQLException | IllegalAccessException e){
+                        e.printStackTrace();
+                    }
+
+
+            }else{
+                System.out.println("Unable to retrieve object from table.");
+            }
+            return obj;
+        }
 
     private String typeConversion(String type, Boolean reverse){
         if (reverse == null){
@@ -327,7 +454,7 @@ public class ORM {
             switch (type) {
                 case "String":
                 case "string":
-                    return FieldType.VARCHAR.name() + "(255)";
+                    return FieldType.VARCHAR.name() + "(200)";
                 case "Character":
                 case "char":
                     return FieldType.CHAR.name();

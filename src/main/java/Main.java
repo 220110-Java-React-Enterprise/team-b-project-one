@@ -21,9 +21,10 @@ public class Main {
 
         ORM orm = new ORM();
         Customers customer = new Customers();
-       // orm.ORM(customer, "create");
-       // orm.ORM(customer, "insert");
-        orm.ORM(customer,"delete");
+       //orm.ormEntry(customer, "create");
+       //orm.ormEntry(customer, "insert");
+        //orm.ormEntry(customer,"delete");
+        orm.ormEntry(customer, "search");
 
     }
 }
