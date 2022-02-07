@@ -1,5 +1,4 @@
 package ORM;
-
 import Annotations.Column;
 import Annotations.ForeignKey;
 import Annotations.PrimaryKey;
@@ -29,8 +28,12 @@ public class ORM {
 
 
 
-
     public void ormEntry(Object obj, String action){
+    /** Entry point of program, this function is in charge of
+     * choosing between methods based on input given.
+     *      Input - User object and action string which consists of (create, insert, delete, search, update)
+     *      Output - None.
+     * ***************************************************************************************************************/
         columnNameArray = new String[2*obj.getClass().getDeclaredFields().length];
         foreignKeyArray = new String[4*obj.getClass().getDeclaredFields().length];
         getTableFormat(obj);
@@ -55,7 +58,14 @@ public class ORM {
 
 
     }
+
+
     private void getTableFormat(Object obj){
+    /** This method is in charge of updating the fields that are within this class. This method is invoked first before any other.
+     * Reflection is used to retrieve field information of the given object and is placed into the fields within this class.
+     *      Input - User object
+     *      Output - None.
+     * ***************************************************************************************************************/
         // check if object has annotations, if so use to parse
         // else parse in a different way.
 
@@ -122,7 +132,13 @@ public class ORM {
 
     }
 
+
     private void createTable(){
+        /** Creates a table in the database using the information retrieved by the "getTableFormat" method.
+         * Primary and foreign key constraints are set here.
+         *      Input - None. The variables initialized by the getTableFormat method are used to create table.
+         *      Output - None.
+         * ***************************************************************************************************************/
         if (!checkIfTableExists(tableName)) {
             String sql = "CREATE TABLE " + tableName.toLowerCase(Locale.ROOT);
             String sqlColumns = " ( ";
@@ -179,17 +195,15 @@ public class ORM {
         }
     }
 
-    /**
-     * This function enters an entire row (except id) into a table.
-     * I need to take care of an occasion when user is entering a row to a table with a foreign key
-     * constraint. There could be a situation where a value is inserted into the fk column
-     * but the value does not match any value in the table that the key references.
-     *
-     */
+
 
 
     // insert entire object to table
     public void insertToTable(Object obj) {
+    /** This method inserts a new entry into an existing table.
+     *      Input - User object
+     *      Output - None.
+     *****************************************************************************************************************/
     Object[][] colNameAndValue = new Object[obj.getClass().getDeclaredFields().length][2];
 
 
@@ -280,12 +294,11 @@ public class ORM {
 
     }
 
-    /**
-     * Function accepts an object and uses its pk value to delete an entire row from the table
-     * it belongs to.
-     * @param obj
-     */
     private void deleteFromTable(Object obj) {
+        /** Method deletes a row from a table that matches the object given unique id.
+         *      Input - User object
+         *      Output - None.
+         * ***************************************************************************************************************/
         String sql = "SHOW KEYS FROM " + tableName + " WHERE Key_name = 'PRIMARY'";
         Object pkValue = 0;
         String pkColumnName = "";
@@ -341,6 +354,11 @@ public class ORM {
     }
 
         private Object getFromTable(Object obj) {
+            /** Retrieves a row from a table given object with a unique id.
+             * After retrieving, it creates a new reference to the object given and updates its information for return.
+             *      Input - User object with a unique identifier.
+             *      Output - object with fields updated with values retrieved from table.
+             * ***************************************************************************************************************/
             Object[][] colNameAndDataType = new Object[obj.getClass().getDeclaredFields().length][2];
             Object pkValue = null;
             int iterator = 0;
@@ -450,6 +468,11 @@ public class ORM {
         }
 
         private void updateTable(Object obj) {
+            /** Methods updates a row from a table given an object with a unique identifier.
+             * Inserts into the row all columns(fields) from object regardless if there was change.
+             *      Input - User object with a unique identifier
+             *      Output - None.
+             * ***************************************************************************************************************/
             Object[][] colNameAndValue = new Object[obj.getClass().getDeclaredFields().length][2];
 
             int iterator = 0;
@@ -539,6 +562,13 @@ public class ORM {
         }
 
     private String typeConversion(String type, Boolean reverse){
+        /** Method switches between java data types and sql types.
+         * By default, it does switches from java to sql types. The opposite can be achieved
+         * by setting reverse boolean to true.
+         * (i.e java.String -> sql.VARCHAR or sql.VARCHAR -> java.String)
+         *      Input - String value of the data type, and a boolean value to control which type of switching to conduct.
+         *      Output - String of the equivalent datatype of the opposing language.
+         * ***************************************************************************************************************/
         if (reverse == null){
             reverse = false;
         }
@@ -587,6 +617,11 @@ public class ORM {
 
 
     private boolean checkIfTableExists(String tableName){
+        /** Checks if table exists in database.
+         *      Input - Table name string.
+         *      Output - boolean value
+         * ***************************************************************************************************************/
+        
         String sql = "SELECT * \n" +
                      "FROM information_schema.TABLES t \n" +
                       "WHERE TABLE_SCHEMA = ? \n" +
