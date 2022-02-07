@@ -21,6 +21,7 @@ public class Main {
 
         ORM orm = new ORM();
         Customers customer = new Customers();
+        //orm.ORM(customer, "create");
         orm.ORM(customer, "insert");
 
     }

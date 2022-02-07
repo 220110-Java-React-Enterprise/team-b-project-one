@@ -6,11 +6,9 @@ import Annotations.PrimaryKey;
 import Annotations.Table;
 import Persistence.FieldType;
 import Util.ConnectionManager;
-import org.mariadb.jdbc.Driver;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.sql.*;
-import java.util.Hashtable;
 import java.util.Locale;
 
 public class ORM {
@@ -62,10 +60,10 @@ public class ORM {
 
             Annotation a = obj.getClass().getAnnotation(Table.class);
             Table annotation = (Table) a;
-            tableName = annotation.name();
+            tableName = annotation.name().toLowerCase(Locale.ROOT);
 
         }else{
-            tableName = obj.getClass().getCanonicalName();
+            tableName = obj.getClass().getCanonicalName().toLowerCase(Locale.ROOT);
 
         }
 
@@ -101,6 +99,18 @@ public class ORM {
 
         }
 
+        for (int i = 0; i < foreignKeyArray.length; i++){
+            if (foreignKeyArray[i] == null) {break;}
+            System.out.print(foreignKeyArray[i] + " ");
+        }
+        System.out.println("\n");
+        for (int i = 0; i < columnNameArray.length; i++){
+            if (columnNameArray[i] == null) {break;}
+            System.out.print(columnNameArray[i] + " ");
+        }
+        System.out.println("\n");
+
+
 //           if (!checkIfTableExists(tableName.toLowerCase(Locale.ROOT))){
 //                createTable(tableName,primaryKey,primaryKeyDataType,columns,foreignKey);
 //           }
@@ -114,25 +124,25 @@ public class ORM {
 
 
         if ((primaryKey != null && primaryKey != "") && (primaryKeyType!= null && primaryKeyType != "")){
-            if (typeConversion(primaryKeyType).equals(FieldType.INT.toString())) {
-                sqlColumns += primaryKey + " " + typeConversion(primaryKeyType) + " AUTO_INCREMENT PRIMARY KEY";
+            if (typeConversion(primaryKeyType,false).equals(FieldType.INT.toString())) {
+                sqlColumns += primaryKey + " " + typeConversion(primaryKeyType,false) + " AUTO_INCREMENT PRIMARY KEY";
             }else{
-                sqlColumns += primaryKey + " " + typeConversion(primaryKeyType)  + " PRIMARY KEY UNIQUE NOT NULL";
+                sqlColumns += primaryKey + " " + typeConversion(primaryKeyType,false)  + " PRIMARY KEY UNIQUE NOT NULL";
             }
             System.out.println("\n" + sql + sqlColumns);
         }else {
-            sqlColumns += primaryKey + " " + typeConversion(primaryKeyType);
+            sqlColumns += primaryKey + " " + typeConversion(primaryKeyType,false);
 
         }
 
         int iterator = 0;
         while (foreignKeyArray[iterator] != null){
-            sqlColumns += ", " + foreignKeyArray[iterator] + " " + typeConversion(foreignKeyArray[iterator+1]);
+            sqlColumns += ", " + foreignKeyArray[iterator] + " " + typeConversion(foreignKeyArray[iterator+1],false);
             iterator += 4;
         }
         iterator = 0;
         while (columnNameArray[iterator] != null){
-            sqlColumns += ", " + columnNameArray[iterator] + " " + typeConversion(columnNameArray[iterator+1]);
+            sqlColumns += ", " + columnNameArray[iterator] + " " + typeConversion(columnNameArray[iterator+1],false);
             iterator += 2;
         }
 
@@ -164,72 +174,151 @@ public class ORM {
 
     }
 
+    /**
+     * This function enters an entire row (except id) into a table.
+     * I need to take care of an occasion when user is entering a row to a table with a foreign key
+     * constraint. There could be a situation where a value is inserted into the fk column
+     * but the value does not match any value in the table that the key references.
+     *
+     */
+
+
+    // insert entire object to table
     public void insertToTable(Object obj) {
-        // i can retrieve all values in the attribute section,
-        // its stored onto an array and i can use instance of to check
-        // datatype
-        // I should create a function that checks instance type to call
-        // the appropriate prepared statement type.
-        
-        Object[] values = new Object[obj.getClass().getDeclaredFields().length];
-        int iterator = 0;
+    Object[][] colNameAndValue = new Object[obj.getClass().getDeclaredFields().length][2];
 
+
+    int iterator = 0;
+    if (checkIfTableExists(tableName)){
         for (Field field : obj.getClass().getDeclaredFields()){
-            //NoSuchFieldException
-            field.setAccessible(true);
-
+            // Sets private fields accessible which allow me to retrieve info.
             try {
-                values[iterator] = field.get(obj);
-                System.out.print(field.getType().getTypeName().replaceFirst("java.lang.", "") + " ");
-                System.out.print(values[iterator]);
-                System.out.println(values[iterator]);
+                field.setAccessible(true);
+                colNameAndValue[iterator][0] = field.getName();
+                colNameAndValue[iterator][1] = field.get(obj);
                 iterator++;
             } catch (IllegalAccessException e) {
                 e.printStackTrace();
             }
         }
 
+        for (int i =0; i < colNameAndValue.length; i++){
+            for(int j = 0; j < colNameAndValue[0].length; j++){
+                System.out.print(colNameAndValue[i][j] + " ");
+                if ( j == 1) {
+                    System.out.println(" " + ((Object) colNameAndValue[i][j]).getClass().getSimpleName());
+                }
+            }
+            System.out.println("\n");
+        }
 
-//        String sql = "INSERT INTO "+ tableName + " (";
-//
-//        for (int i =0; i <  obj.getClass().getDeclaredFields().length; i++){
-//
-//        }
-//
-//
-//
-//        int iterator = 0;
-//        while (foreignKeyArray[iterator] != null){
-//            sql += ", ? ?";
-//            iterator += 4;
-//        }
-//        iterator = 0;
-//        while (columnNameArray[iterator] != null){
-//            sql += ", ? ?";
-//            iterator += 2;
-//        }
+        String sql = "INSERT INTO " + tableName + "( ";
+        for (int i =1; i < colNameAndValue.length; i++){
+            if ((i+1 ) == colNameAndValue.length){
+                sql += colNameAndValue[i][0] + " )";
+            }else {
+                sql += colNameAndValue[i][0] + ",";
+            }
+        }
+
+        sql += " VALUES ( ";
+        for (int i =1; i < colNameAndValue.length; i++){
+            if ((i+1 ) == colNameAndValue.length){
+                sql += "?" + " )";
+            }else {
+                sql += "?" + ",";
+            }
+        }
+
+        try {
+            PreparedStatement statement = connection.prepareStatement(sql);
+            for (int i = 1; i < colNameAndValue.length; i++){
+
+                switch (colNameAndValue[i][1].getClass().getTypeName().replaceFirst("java.lang.", "")) {
+                    case "String":
+                    case "string":
+                    case "Enum":
+                    case "enum":
+
+                        statement.setString(i, colNameAndValue[i][1].toString());
+                        continue;
+                    case "Character":
+                    case "char":
+                        statement.setString(i, String.valueOf(colNameAndValue[i][1]));
+                        continue;
+                    case "Integer":
+                    case "int":
+                        statement.setInt(i, ((int) colNameAndValue[i][1]));
+                        continue;
+                    case "Float":
+                    case "float":
+                    case "double":
+                        statement.setFloat(i, ((float) colNameAndValue[i][1]));
+                        continue;
+                    case "Boolean":
+                    case "boolean":
+                        statement.setBoolean(i, ((boolean) colNameAndValue[i][1]));
+                }
+
+            }
+            System.out.println(statement);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+
+    }else{
+        System.out.println("Table with that name does not exist, maybe try creating one first.");
     }
 
-    private String typeConversion(String type){
-        switch (type){
-            case "String":
-            case "string":
-                return FieldType.VARCHAR.name()+ "(255)";
-            case "Character":
-            case "char":
-                return FieldType.CHAR.name();
-            case "Integer":
-            case "int":
-                return FieldType.INT.name();
-            case "Float":
-            case "float":
-                return FieldType.DECIMAL.name();
-            case "Boolean":
-            case "boolean":
-                return FieldType.BOOLEAN.name();
-            case "Enum":
-                return FieldType.ENUM.name();
-        }return null;
+
+    }
+
+    private String typeConversion(String type, Boolean reverse){
+        if (reverse == null){
+            reverse = false;
+        }
+        if (!reverse) {
+            switch (type) {
+                case "String":
+                case "string":
+                    return FieldType.VARCHAR.name() + "(255)";
+                case "Character":
+                case "char":
+                    return FieldType.CHAR.name();
+                case "Integer":
+                case "int":
+                    return FieldType.INT.name();
+                case "Float":
+                case "float":
+                case "double":
+                    return FieldType.DECIMAL.name();
+                case "Boolean":
+                case "boolean":
+                    return FieldType.BOOLEAN.name();
+                case "Enum":
+                    return FieldType.ENUM.name();
+            }
+            return null;
+        } else{
+            switch (type) {
+                case "varchar":
+                    return "String";
+                case "char":
+                    return "Character";
+                case "int":
+                    return "Integer";
+                case "decimal":
+                    return "Float";
+                case "boolean":
+                case "tinyint":
+                    return "Boolean";
+                case "enum":
+                    return "Enum";
+            }
+            return null;
+        }
     }
     // returns true if exists, false otherwise.
 
