@@ -1,5 +1,4 @@
 package ORM;
-
 import Annotations.Column;
 import Annotations.ForeignKey;
 import Annotations.PrimaryKey;
@@ -9,6 +8,8 @@ import Util.ConnectionManager;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.sql.*;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Locale;
 
 public class ORM {
@@ -19,21 +20,30 @@ public class ORM {
     private String[] columnNameArray;
     private String[] foreignKeyArray;
 
-    private Connection connection = ConnectionManager.getConnection();
-    private String dbName = "ProjectOne";
+    private Connection connection;
+    private String dbName;
 
 
     public  ORM(){
 
     }
 
+    public void connect(String hostname, String port, String DBname, String userName, String password){
+        dbName = DBname;
+        connection = ConnectionManager.getConnection(hostname, port, DBname, userName, password);
+    }
 
 
-
-    public void ormEntry(Object obj, String action){
+    public Object ormEntry(Object obj, String action){
+    /** Entry point of program, this function is in charge of
+     * choosing between methods based on input given.
+     *      Input - User object and action string which consists of (create, insert, delete, search, update)
+     *      Output - None.
+     * ***************************************************************************************************************/
         columnNameArray = new String[2*obj.getClass().getDeclaredFields().length];
         foreignKeyArray = new String[4*obj.getClass().getDeclaredFields().length];
         getTableFormat(obj);
+        Object result = null;
 
         switch (action){
             case "create":
@@ -46,20 +56,28 @@ public class ORM {
                 deleteFromTable(obj);
                 break;
             case "search":
-                getFromTable(obj);
+                result = getFromTable(obj);
                 break;
             case "update":
                 updateTable(obj);
                 break;
         }
 
-
+        return result;
     }
+
+
     private void getTableFormat(Object obj){
+    /** This method is in charge of updating the fields that are within this class. This method is invoked first before any other.
+     * Reflection is used to retrieve field information of the given object and is placed into the fields within this class.
+     *      Input - User object
+     *      Output - None.
+     * ***************************************************************************************************************/
         // check if object has annotations, if so use to parse
         // else parse in a different way.
 
         // Initial class (top level) name
+        System.out.println(obj.getClass().isAnnotationPresent(Table.class));
         if (obj.getClass().isAnnotationPresent(Table.class)) {
 
             Annotation a = obj.getClass().getAnnotation(Table.class);
@@ -67,10 +85,10 @@ public class ORM {
             tableName = annotation.name().toLowerCase(Locale.ROOT);
 
         }else{
+
             tableName = obj.getClass().getCanonicalName().toLowerCase(Locale.ROOT);
 
         }
-
         // Class attributes (fields) are iterated through.
         // Depending on annotation, it is saved in the proper location
         // Arrays in the following loop are formed the following
@@ -122,7 +140,13 @@ public class ORM {
 
     }
 
+
     private void createTable(){
+        /** Creates a table in the database using the information retrieved by the "getTableFormat" method.
+         * Primary and foreign key constraints are set here.
+         *      Input - None. The variables initialized by the getTableFormat method are used to create table.
+         *      Output - None.
+         * ***************************************************************************************************************/
         if (!checkIfTableExists(tableName)) {
             String sql = "CREATE TABLE " + tableName.toLowerCase(Locale.ROOT);
             String sqlColumns = " ( ";
@@ -179,21 +203,19 @@ public class ORM {
         }
     }
 
-    /**
-     * This function enters an entire row (except id) into a table.
-     * I need to take care of an occasion when user is entering a row to a table with a foreign key
-     * constraint. There could be a situation where a value is inserted into the fk column
-     * but the value does not match any value in the table that the key references.
-     *
-     */
+
 
 
     // insert entire object to table
     public void insertToTable(Object obj) {
+    /** This method inserts a new entry into an existing table.
+     *      Input - User object
+     *      Output - None.
+     *****************************************************************************************************************/
     Object[][] colNameAndValue = new Object[obj.getClass().getDeclaredFields().length][2];
 
-
     int iterator = 0;
+        System.out.println("Insert to table " + tableName);
     if (checkIfTableExists(tableName)){
         for (Field field : obj.getClass().getDeclaredFields()){
             // Sets private fields accessible which allow me to retrieve info.
@@ -201,21 +223,26 @@ public class ORM {
                 field.setAccessible(true);
                 colNameAndValue[iterator][0] = field.getName();
                 colNameAndValue[iterator][1] = field.get(obj);
+                System.out.println("Inside first field for loop "+field.getName() + " " + field.get(obj));
                 iterator++;
             } catch (IllegalAccessException e) {
                 e.printStackTrace();
             }
         }
 
-        for (int i =0; i < colNameAndValue.length; i++){
-            for(int j = 0; j < colNameAndValue[0].length; j++){
-                System.out.print(colNameAndValue[i][j] + " ");
-                if ( j == 1) {
-                    System.out.println(" " + ((Object) colNameAndValue[i][j]).getClass().getSimpleName());
-                }
-            }
-            System.out.println("\n");
-        }
+//        System.out.println("After table name exist:");
+//        for (int i =0; i < colNameAndValue.length; i++){
+//            System.out.println("inside first for loop");
+//            for(int j = 0; j < colNameAndValue[0].length; j++){
+//                System.out.println("inside second for loop");
+//                System.out.print(colNameAndValue[i][j] + " ");
+//                if ( j == 1) {
+//                    System.out.println("inside if statement");
+//                    System.out.println(" " + colNameAndValue[i][j].getClass().getSimpleName());
+//                }
+//            }
+//            System.out.println("\n");
+//        }
 
         String sql = "INSERT INTO " + tableName + "( ";
         for (int i =1; i < colNameAndValue.length; i++){
@@ -234,7 +261,7 @@ public class ORM {
                 sql += "?" + ",";
             }
         }
-
+        System.out.println(sql);
         try {
             PreparedStatement statement = connection.prepareStatement(sql);
             for (int i = 1; i < colNameAndValue.length; i++){
@@ -274,18 +301,17 @@ public class ORM {
 
 
     }else{
-        System.out.println("Table with that name does not exist, maybe try creating one first.");
+        System.out.println("Table name " + tableName +" name does not exist, maybe try creating one first.");
     }
 
 
     }
 
-    /**
-     * Function accepts an object and uses its pk value to delete an entire row from the table
-     * it belongs to.
-     * @param obj
-     */
     private void deleteFromTable(Object obj) {
+        /** Method deletes a row from a table that matches the object given unique id.
+         *      Input - User object
+         *      Output - None.
+         * ***************************************************************************************************************/
         String sql = "SHOW KEYS FROM " + tableName + " WHERE Key_name = 'PRIMARY'";
         Object pkValue = 0;
         String pkColumnName = "";
@@ -341,6 +367,11 @@ public class ORM {
     }
 
         private Object getFromTable(Object obj) {
+            /** Retrieves a row from a table given object with a unique id.
+             * After retrieving, it creates a new reference to the object given and updates its information for return.
+             *      Input - User object with a unique identifier.
+             *      Output - object with fields updated with values retrieved from table.
+             * ***************************************************************************************************************/
             Object[][] colNameAndDataType = new Object[obj.getClass().getDeclaredFields().length][2];
             Object pkValue = null;
             int iterator = 0;
@@ -450,6 +481,11 @@ public class ORM {
         }
 
         private void updateTable(Object obj) {
+            /** Methods updates a row from a table given an object with a unique identifier.
+             * Inserts into the row all columns(fields) from object regardless if there was change.
+             *      Input - User object with a unique identifier
+             *      Output - None.
+             * ***************************************************************************************************************/
             Object[][] colNameAndValue = new Object[obj.getClass().getDeclaredFields().length][2];
 
             int iterator = 0;
@@ -537,8 +573,24 @@ public class ORM {
 
 
         }
-
+    /** Method retrieves all data pertaining to user.
+     * It will return a linked list of objects of the same type that it was given.
+     * The first object fields will be used to retrieve data.
+     *      Input - Object list of all objects who have tables in database and contain a primary key.
+     *      Output - Linked list with all information pertaining to user.
+     * ***************************************************************************************************************/
+    private List<Object>getAllFromList(List<Object> obj){
+        List<Object> result = new LinkedList<>();
+        return result;
+    }
     private String typeConversion(String type, Boolean reverse){
+        /** Method switches between java data types and sql types.
+         * By default, it does switches from java to sql types. The opposite can be achieved
+         * by setting reverse boolean to true.
+         * (i.e java.String -> sql.VARCHAR or sql.VARCHAR -> java.String)
+         *      Input - String value of the data type, and a boolean value to control which type of switching to conduct.
+         *      Output - String of the equivalent datatype of the opposing language.
+         * ***************************************************************************************************************/
         if (reverse == null){
             reverse = false;
         }
@@ -587,6 +639,11 @@ public class ORM {
 
 
     private boolean checkIfTableExists(String tableName){
+        /** Checks if table exists in database.
+         *      Input - Table name string.
+         *      Output - boolean value
+         * ***************************************************************************************************************/
+        System.out.println("check if table exist: " + tableName);
         String sql = "SELECT * \n" +
                      "FROM information_schema.TABLES t \n" +
                       "WHERE TABLE_SCHEMA = ? \n" +
@@ -603,7 +660,8 @@ public class ORM {
                                    " already exists in database.");
                 return true;
             }
-        } catch (SQLException e) {
+        } catch (SQLException | NullPointerException e) {
+            System.out.println("sql exception");
             e.printStackTrace();
             return false;
         }

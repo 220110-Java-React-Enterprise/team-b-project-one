@@ -2,6 +2,7 @@ package Util;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.util.Scanner;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -9,45 +10,34 @@ import java.io.FileNotFoundException;
 public class ConnectionManager {
 
     private static Connection connection;
+    private static String dbName;
 
     private ConnectionManager() {
     }
 
-    public static Connection getConnection() {
+    public static Connection getConnection(String hostname, String port, String DBname, String userName, String password) {
         if (connection == null) {
-            try {
-                File file = new File("G:\\Java Projects\\props.txt");
-                Scanner reader = new Scanner(file);
-                while (reader.hasNextLine()) {
-                    String hostname = reader.nextLine();
-                    String port = reader.nextLine();
-                    String DBName = reader.nextLine();
-                    String userName = reader.nextLine();
-                    String password = reader.nextLine();
-                    connection = connect(hostname, port, DBName, userName, password);
+                    connection = connect(hostname, port, DBname, userName, password);
+                    dbName = DBname;
                     System.out.println("Connection successful");
-                }
-                reader.close();
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            }
-
-
-
 
         }
         return connection;
     }
 
+    public static String getDbName(){
+        return dbName;
+    }
 
     private static Connection connect(String hostname, String port, String DBName, String userName, String password) {
+
         try {
+            Class.forName("org.mariadb.jdbc.Driver");
             String connectionString = "jdbc:mariadb://" + hostname + ":" + port + "/" + DBName + "?user=" +
                     userName + "&password=" + password;
-            Class.forName("org.mariadb.jdbc.Driver");
             connection = DriverManager.getConnection(connectionString);
             //System.out.println(connectionString);
-        } catch (Exception e) {
+        } catch (ClassNotFoundException | SQLException e) {
             e.printStackTrace();
         }
         return connection;
