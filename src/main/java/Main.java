@@ -27,16 +27,16 @@ public class Main {
 
 
 
-//        ORM orm = new ORM();
-//        orm.connect("my-training-db.cmujmbzokloj.us-east-1.rds.amazonaws.com",
-//                "3306", "ProjectOne","admin", "RevatureTraining713!");
-//        Customers customer = new Customers();
-        //Flights flight = new Flights();
+        ORM orm = new ORM();
+        orm.connect("my-training-db.cmujmbzokloj.us-east-1.rds.amazonaws.com",
+                "3306", "ProjectOne","admin", "RevatureTraining713!");
+        Customers customer = new Customers();
+        Flights flight = new Flights();
         //Tickets tickets = new Tickets();
       // orm.ormEntry(flight, "create");
       //orm.ormEntry(customer, "create");
 //        orm.ormEntry(tickets, "create");
- //      orm.ormEntry(customer, "insert");
+       orm.ormEntry(flight, "insert");
         //orm.ormEntry(customer,"delete");
         //orm.ormEntry(customer, "search");
         //orm.ormEntry(customer,"update");

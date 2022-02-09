@@ -375,11 +375,14 @@ public class ORM {
             Object[][] colNameAndDataType = new Object[obj.getClass().getDeclaredFields().length][2];
             Object pkValue = null;
             int iterator = 0;
+            System.out.println("get from table: " + tableName);
+            System.out.println("check if exists: " + checkIfTableExists(tableName));
             if (checkIfTableExists(tableName)) {
                 for (Field field : obj.getClass().getDeclaredFields()) {
                     // Sets private fields accessible which allow me to retrieve info.
                         field.setAccessible(true);
                         colNameAndDataType[iterator][0] = field.getName();
+                    System.out.println("If statement inside enhanced loop in getFromTable: " + field.getName().equals(primaryKey));
                         if (field.getName().equals(primaryKey)){
                             try {
                                 pkValue = field.get(obj);
@@ -434,7 +437,7 @@ public class ORM {
                         switch (currentDataType){
                             case "Integer":
                             case "int":
-                                System.out.print(field.getName() + " " + result.getInt(field.getName()) + "\n");
+                                //System.out.print(field.getName() + " " + result.getInt(field.getName()) + "\n");
                                 field.set(obj2,result.getInt(field.getName()));
                                 continue;
                             case "String":
