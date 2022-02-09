@@ -8,6 +8,8 @@ import Util.ConnectionManager;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.sql.*;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Locale;
 
 public class ORM {
@@ -18,17 +20,21 @@ public class ORM {
     private String[] columnNameArray;
     private String[] foreignKeyArray;
 
-    private Connection connection = ConnectionManager.getConnection();
-    private String dbName = "ProjectOne";
+    private Connection connection;
+    private String dbName;
 
 
     public  ORM(){
 
     }
 
+    public void connect(String hostname, String port, String DBname, String userName, String password){
+        dbName = DBname;
+        connection = ConnectionManager.getConnection(hostname, port, DBname, userName, password);
+    }
 
 
-    public void ormEntry(Object obj, String action){
+    public Object ormEntry(Object obj, String action){
     /** Entry point of program, this function is in charge of
      * choosing between methods based on input given.
      *      Input - User object and action string which consists of (create, insert, delete, search, update)
@@ -37,6 +43,7 @@ public class ORM {
         columnNameArray = new String[2*obj.getClass().getDeclaredFields().length];
         foreignKeyArray = new String[4*obj.getClass().getDeclaredFields().length];
         getTableFormat(obj);
+        Object result = null;
 
         switch (action){
             case "create":
@@ -49,14 +56,14 @@ public class ORM {
                 deleteFromTable(obj);
                 break;
             case "search":
-                getFromTable(obj);
+                result = getFromTable(obj);
                 break;
             case "update":
                 updateTable(obj);
                 break;
         }
 
-
+        return result;
     }
 
 
@@ -70,6 +77,7 @@ public class ORM {
         // else parse in a different way.
 
         // Initial class (top level) name
+        System.out.println(obj.getClass().isAnnotationPresent(Table.class));
         if (obj.getClass().isAnnotationPresent(Table.class)) {
 
             Annotation a = obj.getClass().getAnnotation(Table.class);
@@ -77,10 +85,10 @@ public class ORM {
             tableName = annotation.name().toLowerCase(Locale.ROOT);
 
         }else{
+
             tableName = obj.getClass().getCanonicalName().toLowerCase(Locale.ROOT);
 
         }
-
         // Class attributes (fields) are iterated through.
         // Depending on annotation, it is saved in the proper location
         // Arrays in the following loop are formed the following
@@ -206,8 +214,8 @@ public class ORM {
      *****************************************************************************************************************/
     Object[][] colNameAndValue = new Object[obj.getClass().getDeclaredFields().length][2];
 
-
     int iterator = 0;
+        System.out.println("Insert to table " + tableName);
     if (checkIfTableExists(tableName)){
         for (Field field : obj.getClass().getDeclaredFields()){
             // Sets private fields accessible which allow me to retrieve info.
@@ -215,21 +223,26 @@ public class ORM {
                 field.setAccessible(true);
                 colNameAndValue[iterator][0] = field.getName();
                 colNameAndValue[iterator][1] = field.get(obj);
+                System.out.println("Inside first field for loop "+field.getName() + " " + field.get(obj));
                 iterator++;
             } catch (IllegalAccessException e) {
                 e.printStackTrace();
             }
         }
 
-        for (int i =0; i < colNameAndValue.length; i++){
-            for(int j = 0; j < colNameAndValue[0].length; j++){
-                System.out.print(colNameAndValue[i][j] + " ");
-                if ( j == 1) {
-                    System.out.println(" " + ((Object) colNameAndValue[i][j]).getClass().getSimpleName());
-                }
-            }
-            System.out.println("\n");
-        }
+//        System.out.println("After table name exist:");
+//        for (int i =0; i < colNameAndValue.length; i++){
+//            System.out.println("inside first for loop");
+//            for(int j = 0; j < colNameAndValue[0].length; j++){
+//                System.out.println("inside second for loop");
+//                System.out.print(colNameAndValue[i][j] + " ");
+//                if ( j == 1) {
+//                    System.out.println("inside if statement");
+//                    System.out.println(" " + colNameAndValue[i][j].getClass().getSimpleName());
+//                }
+//            }
+//            System.out.println("\n");
+//        }
 
         String sql = "INSERT INTO " + tableName + "( ";
         for (int i =1; i < colNameAndValue.length; i++){
@@ -248,7 +261,7 @@ public class ORM {
                 sql += "?" + ",";
             }
         }
-
+        System.out.println(sql);
         try {
             PreparedStatement statement = connection.prepareStatement(sql);
             for (int i = 1; i < colNameAndValue.length; i++){
@@ -288,7 +301,7 @@ public class ORM {
 
 
     }else{
-        System.out.println("Table with that name does not exist, maybe try creating one first.");
+        System.out.println("Table name " + tableName +" name does not exist, maybe try creating one first.");
     }
 
 
@@ -560,7 +573,16 @@ public class ORM {
 
 
         }
-
+    /** Method retrieves all data pertaining to user.
+     * It will return a linked list of objects of the same type that it was given.
+     * The first object fields will be used to retrieve data.
+     *      Input - Object list of all objects who have tables in database and contain a primary key.
+     *      Output - Linked list with all information pertaining to user.
+     * ***************************************************************************************************************/
+    private List<Object>getAllFromList(List<Object> obj){
+        List<Object> result = new LinkedList<>();
+        return result;
+    }
     private String typeConversion(String type, Boolean reverse){
         /** Method switches between java data types and sql types.
          * By default, it does switches from java to sql types. The opposite can be achieved
@@ -621,7 +643,7 @@ public class ORM {
          *      Input - Table name string.
          *      Output - boolean value
          * ***************************************************************************************************************/
-        
+        System.out.println("check if table exist: " + tableName);
         String sql = "SELECT * \n" +
                      "FROM information_schema.TABLES t \n" +
                       "WHERE TABLE_SCHEMA = ? \n" +
@@ -638,7 +660,8 @@ public class ORM {
                                    " already exists in database.");
                 return true;
             }
-        } catch (SQLException e) {
+        } catch (SQLException | NullPointerException e) {
+            System.out.println("sql exception");
             e.printStackTrace();
             return false;
         }
