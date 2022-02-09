@@ -1,14 +1,11 @@
-G:\Java Projects\team-b-project-one\src\main\java\Annotations\ForeignKey.java
-G:\Java Projects\team-b-project-one\src\main\java\Annotations\PrimaryKey.java
-G:\Java Projects\team-b-project-one\src\main\java\Annotations\Entity.java
-G:\Java Projects\team-b-project-one\src\main\java\Objects\Tickets.java
-G:\Java Projects\team-b-project-one\src\main\java\Persistence\FieldType.java
-G:\Java Projects\team-b-project-one\src\main\java\Util\ConnectionManager.java
-G:\Java Projects\team-b-project-one\src\main\java\Persistence\ScriptMaker.java
-G:\Java Projects\team-b-project-one\src\main\java\Util\ContextStore.java
-G:\Java Projects\team-b-project-one\src\main\java\Annotations\Table.java
-G:\Java Projects\team-b-project-one\src\main\java\Main.java
-G:\Java Projects\team-b-project-one\src\main\java\Objects\Customers.java
-G:\Java Projects\team-b-project-one\src\main\java\Annotations\Column.java
-G:\Java Projects\team-b-project-one\src\main\java\ORM\ORM.java
-G:\Java Projects\team-b-project-one\src\main\java\Objects\Flights.java
+C:\Users\majaw\IdeaProjects\repos\team-b-project-one\src\main\java\Persistence\FieldType.java
+C:\Users\majaw\IdeaProjects\repos\team-b-project-one\src\main\java\Persistence\ScriptMaker.java
+C:\Users\majaw\IdeaProjects\repos\team-b-project-one\src\main\java\Annotations\Column.java
+C:\Users\majaw\IdeaProjects\repos\team-b-project-one\src\main\java\Annotations\PrimaryKey.java
+C:\Users\majaw\IdeaProjects\repos\team-b-project-one\src\main\java\Util\ContextStore.java
+C:\Users\majaw\IdeaProjects\repos\team-b-project-one\src\main\java\Annotations\Table.java
+C:\Users\majaw\IdeaProjects\repos\team-b-project-one\src\main\java\Annotations\ForeignKey.java
+C:\Users\majaw\IdeaProjects\repos\team-b-project-one\src\main\java\Util\ConnectionManager.java
+C:\Users\majaw\IdeaProjects\repos\team-b-project-one\src\main\java\Annotations\Entity.java
+C:\Users\majaw\IdeaProjects\repos\team-b-project-one\src\main\java\Main.java
+C:\Users\majaw\IdeaProjects\repos\team-b-project-one\src\main\java\ORM\ORM.java
