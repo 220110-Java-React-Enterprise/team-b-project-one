@@ -38,8 +38,9 @@ public class ORM {
     public Object ormEntry(Object obj, String action){
     /** Entry point of program, this function is in charge of
      * choosing between methods based on input given.
-     *      Input - User object and action string which consists of (create, insert, delete, search, update)
-     *      Output - None.
+     *      Input - User object and action string which consists of (create, insert, delete, search, update, getall, load)
+     *      Output - Null unless a search query is made for a single object, that Object received from DB
+     *              is returned
      * ***************************************************************************************************************/
         columnNameArray = new String[2*obj.getClass().getDeclaredFields().length];
         foreignKeyArray = new String[4*obj.getClass().getDeclaredFields().length];
