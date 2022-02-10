@@ -19,7 +19,8 @@ public class ORM {
     private String primaryKeyType;
     private String[] columnNameArray;
     private String[] foreignKeyArray;
-
+    private List<Object> list;
+    private List<Object> resultList;
     private Connection connection;
     private String dbName;
 
@@ -61,6 +62,11 @@ public class ORM {
             case "update":
                 updateTable(obj);
                 break;
+            case "getall":
+                getAllPertainingToUser(obj);
+                break;
+            case "load":
+                break;
         }
 
         return result;
@@ -77,7 +83,6 @@ public class ORM {
         // else parse in a different way.
 
         // Initial class (top level) name
-        System.out.println(obj.getClass().isAnnotationPresent(Table.class));
         if (obj.getClass().isAnnotationPresent(Table.class)) {
 
             Annotation a = obj.getClass().getAnnotation(Table.class);
@@ -123,19 +128,12 @@ public class ORM {
 
         for (int i = 0; i < foreignKeyArray.length; i++){
             if (foreignKeyArray[i] == null) {break;}
-            System.out.print(foreignKeyArray[i] + " ");
         }
-        System.out.println("\n");
+
         for (int i = 0; i < columnNameArray.length; i++){
             if (columnNameArray[i] == null) {break;}
-            System.out.print(columnNameArray[i] + " ");
         }
-        System.out.println("\n");
 
-
-//           if (!checkIfTableExists(tableName.toLowerCase(Locale.ROOT))){
-//                createTable(tableName,primaryKey,primaryKeyDataType,columns,foreignKey);
-//           }
 
 
     }
@@ -158,7 +156,7 @@ public class ORM {
                 } else {
                     sqlColumns += primaryKey + " " + typeConversion(primaryKeyType, false) + " PRIMARY KEY UNIQUE NOT NULL";
                 }
-                System.out.println("\n" + sql + sqlColumns);
+
             } else {
                 sqlColumns += primaryKey + " " + typeConversion(primaryKeyType, false);
 
@@ -190,8 +188,6 @@ public class ORM {
                 sqlColumns = sqlColumns + " ) ";
             }
 
-            System.out.println("\n" + sql + sqlColumns);
-
             try {
                 sql = sql + sqlColumns;
                 PreparedStatement statement = connection.prepareStatement(sql);
@@ -215,7 +211,6 @@ public class ORM {
     Object[][] colNameAndValue = new Object[obj.getClass().getDeclaredFields().length][2];
 
     int iterator = 0;
-        System.out.println("Insert to table " + tableName);
     if (checkIfTableExists(tableName)){
         for (Field field : obj.getClass().getDeclaredFields()){
             // Sets private fields accessible which allow me to retrieve info.
@@ -223,26 +218,12 @@ public class ORM {
                 field.setAccessible(true);
                 colNameAndValue[iterator][0] = field.getName();
                 colNameAndValue[iterator][1] = field.get(obj);
-                System.out.println("Inside first field for loop "+field.getName() + " " + field.get(obj));
                 iterator++;
             } catch (IllegalAccessException e) {
                 e.printStackTrace();
             }
         }
 
-//        System.out.println("After table name exist:");
-//        for (int i =0; i < colNameAndValue.length; i++){
-//            System.out.println("inside first for loop");
-//            for(int j = 0; j < colNameAndValue[0].length; j++){
-//                System.out.println("inside second for loop");
-//                System.out.print(colNameAndValue[i][j] + " ");
-//                if ( j == 1) {
-//                    System.out.println("inside if statement");
-//                    System.out.println(" " + colNameAndValue[i][j].getClass().getSimpleName());
-//                }
-//            }
-//            System.out.println("\n");
-//        }
 
         String sql = "INSERT INTO " + tableName + "( ";
         for (int i =1; i < colNameAndValue.length; i++){
@@ -261,7 +242,7 @@ public class ORM {
                 sql += "?" + ",";
             }
         }
-        System.out.println(sql);
+
         try {
             PreparedStatement statement = connection.prepareStatement(sql);
             for (int i = 1; i < colNameAndValue.length; i++){
@@ -293,7 +274,6 @@ public class ORM {
                 }
 
             }
-            System.out.println(statement);
             statement.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -301,7 +281,6 @@ public class ORM {
 
 
     }else{
-        System.out.println("Table name " + tableName +" name does not exist, maybe try creating one first.");
     }
 
 
@@ -330,8 +309,6 @@ public class ORM {
             }
 
             if (!primaryKey.equals(pkColumnName)) {
-
-                System.out.println("your pk field does not match the pk field in table.");
 
             } else if (pkValue instanceof Integer && (Integer) pkValue != 0) {
 
@@ -375,19 +352,15 @@ public class ORM {
             Object[][] colNameAndDataType = new Object[obj.getClass().getDeclaredFields().length][2];
             Object pkValue = null;
             int iterator = 0;
-            System.out.println("get from table: " + tableName);
-            System.out.println("check if exists: " + checkIfTableExists(tableName));
             if (checkIfTableExists(tableName)) {
                 for (Field field : obj.getClass().getDeclaredFields()) {
                     // Sets private fields accessible which allow me to retrieve info.
                         field.setAccessible(true);
                         colNameAndDataType[iterator][0] = field.getName();
-                    System.out.println("If statement inside enhanced loop in getFromTable: " + field.getName().equals(primaryKey));
                         if (field.getName().equals(primaryKey)){
                             try {
                                 pkValue = field.get(obj);
                             } catch (IllegalAccessException e) {
-                                System.out.println("Problem trying to get value for search query.");
                                 e.printStackTrace();
                             }
                         }
@@ -419,12 +392,10 @@ public class ORM {
                             break;
                         case "Boolean":
                         case "boolean":
-                            System.out.println("bool switch");
                             statement.setBoolean(1, (Integer) pkValue > 0);
                             break;
                         }
 
-                    System.out.println(statement);
                     ResultSet result = statement.executeQuery();
                     result.next();
                     iterator = 0;
@@ -433,11 +404,9 @@ public class ORM {
                     for (Field field : obj.getClass().getDeclaredFields()){
                         field.setAccessible(true);
                         String currentDataType = field.getType().getTypeName().replaceFirst("java.lang.", "");
-                        System.out.println(currentDataType);
                         switch (currentDataType){
                             case "Integer":
                             case "int":
-                                //System.out.print(field.getName() + " " + result.getInt(field.getName()) + "\n");
                                 field.set(obj2,result.getInt(field.getName()));
                                 continue;
                             case "String":
@@ -446,26 +415,19 @@ public class ORM {
                             case "enum":
                             case "Character":
                             case "char":
-                                System.out.println(field.getName());
-                                System.out.println(result.getString(field.getName()));
-                                System.out.print(field.getName() + " " + result.getString(field.getName()) + "\n");
                                 field.set(obj2,result.getString(field.getName()));
                                 continue;
                             case "Float":
                             case "float":
                             case "double":
-                                System.out.print(field.getName() + " " + result.getFloat(field.getName()) + "\n");
                                 field.set(obj2, result.getFloat(field.getName()));
                                 continue;
                             case "Boolean":
                             case "boolean":
-                                System.out.print(field.getName() + " " + result.getBoolean(field.getName()) + "\n");
                                 field.set(obj2, result.getBoolean(field.getName()));
                         }
                         iterator++;
-                        System.out.println("np2");
                         if (iterator == colNameAndDataType.length){
-                            System.out.println("np3");
                             break;}
                     }
 
@@ -478,7 +440,6 @@ public class ORM {
 
 
             }else{
-                System.out.println("Unable to retrieve object from table.");
             }
             return obj;
         }
@@ -523,7 +484,6 @@ public class ORM {
 
                 sql += " WHERE " + primaryKey + "= ?";
 
-                System.out.println(sql);
 
                 try {
                     PreparedStatement statement = connection.prepareStatement(sql);
@@ -562,7 +522,6 @@ public class ORM {
 
                     }
 
-                    System.out.println(statement);
                     statement.executeUpdate();
 
                 } catch (SQLException e) {
@@ -571,7 +530,6 @@ public class ORM {
 
 
             }else{
-                System.out.println("Table with that name does not exist, maybe try creating one first.");
             }
 
 
@@ -646,7 +604,6 @@ public class ORM {
          *      Input - Table name string.
          *      Output - boolean value
          * ***************************************************************************************************************/
-        System.out.println("check if table exist: " + tableName);
         String sql = "SELECT * \n" +
                      "FROM information_schema.TABLES t \n" +
                       "WHERE TABLE_SCHEMA = ? \n" +
@@ -659,18 +616,149 @@ public class ORM {
             statement.executeUpdate();
             ResultSet resultSet = statement.getResultSet();
             if (resultSet.next()){
-                System.out.println("Table with name: " + resultSet.getString("TABLE_NAME")+
-                                   " already exists in database.");
                 return true;
             }
         } catch (SQLException | NullPointerException e) {
-            System.out.println("sql exception");
             e.printStackTrace();
             return false;
         }
         return false;
     }
 
+    public void objectTypes(List<Object> obj){
+        this.list = obj;
+    }
+    private void packObjectsToList(ResultSet results){
+            List<Object> finalList = new LinkedList<>();
 
+        try {
+            while (results.next()) {
+                for (Object obj : list) {
+                    Object tempObject = obj;
+                    for (Field field : obj.getClass().getDeclaredFields()) {
+                        field.setAccessible(true);
+                        String currentDataType = field.getType().getTypeName().replaceFirst("java.lang.", "");
+
+                        switch (currentDataType) {
+                            case "Integer":
+                            case "int":
+
+                                field.set(tempObject, results.getInt(field.getName()));
+                                continue;
+                            case "String":
+                            case "string":
+                            case "Enum":
+                            case "enum":
+                            case "Character":
+                            case "char":
+                                field.set(tempObject, results.getString(field.getName()));
+                                continue;
+                            case "Float":
+                            case "float":
+                            case "double":
+
+                                field.set(tempObject, results.getFloat(field.getName()));
+                                continue;
+                            case "Boolean":
+                            case "boolean":
+
+                                field.set(tempObject, results.getBoolean(field.getName()));
+                        }
+                    }
+                    finalList.add(tempObject);
+                }
+
+            }
+
+        } catch (SQLException | IllegalAccessException e) {
+            e.printStackTrace();
+        }
+            resultList = finalList;
+    }
+    public List<Object> getAllObjects(){
+        return resultList;
+    }
+    public void getAllPertainingToUser(Object obj){
+        List<String> tableName = new LinkedList<String>();
+        List<String> fkColumn = new LinkedList<String>();
+        List<String> referenceTableName = new LinkedList<String>();
+        List<String> referenceTableColumnName = new LinkedList<String>();
+
+        String schema = "SELECT `TABLE_SCHEMA`," +
+                         "`TABLE_NAME`,`COLUMN_NAME`," +
+                        "`REFERENCED_TABLE_SCHEMA`," +
+                        "`REFERENCED_TABLE_NAME`,`REFERENCED_COLUMN_NAME` " +
+                 "FROM`INFORMATION_SCHEMA`.`KEY_COLUMN_USAGE`" +
+                "WHERE `TABLE_SCHEMA` = SCHEMA() " +
+                "AND `REFERENCED_TABLE_NAME` IS NOT NULL; ";
+        try{
+            PreparedStatement statement = connection.prepareStatement(schema);
+            ResultSet results = statement.executeQuery();
+            while (results.next()){
+                tableName.add(results.getString("TABLE_NAME"));
+                fkColumn.add(results.getString("COLUMN_NAME"));
+                referenceTableName.add(results.getString("REFERENCED_TABLE_NAME"));
+                referenceTableColumnName.add(results.getString("REFERENCED_COLUMN_NAME"));
+            }
+            String customerData = "SELECT * FROM ";
+
+            int columnPKLocationInList = 0;
+
+                for(int i =0; i < referenceTableName.size();i++){
+                    if (referenceTableColumnName.get(i).equals(primaryKey)){
+                        columnPKLocationInList = i;
+                        break;
+                    }
+                }
+                customerData += tableName.get(columnPKLocationInList);
+                for (int i = columnPKLocationInList; i < referenceTableName.size(); i++){
+                    if (tableName.get(i).equals(tableName.get(columnPKLocationInList))){
+                        customerData += " INNER JOIN " + referenceTableName.get(i) +
+                                        " ON " + tableName.get(i) + "." + fkColumn.get(i) + " = " +
+                                        referenceTableName.get(i) + "." + referenceTableColumnName.get(i) + " ";
+
+                    }
+                }
+            Object pkValue = "";
+                for (Field field : obj.getClass().getDeclaredFields()){
+                    field.setAccessible(true);
+                    if (field.getName().equals(primaryKey)){
+                        pkValue = field.get(obj);
+                    }
+                }
+                customerData += "WHERE " + this.tableName + "." + this.primaryKey + " = ?";
+                statement = connection.prepareStatement(customerData);
+
+                switch (primaryKeyType) {
+                case "String":
+                case "string":
+                case "Enum":
+                case "enum":
+                case "Character":
+                case "char":
+                    statement.setString(1, (String) pkValue);
+                   break;
+                case "Integer":
+                case "int":
+                    statement.setInt(1,(Integer) pkValue);
+                    break;
+                case "Float":
+                case "float":
+                case "double":
+                    statement.setFloat(1, (Float) pkValue);
+                    break;
+            }
+
+
+            results = statement.executeQuery();
+                packObjectsToList(results);
+
+
+
+        }catch (SQLException | IllegalAccessException e){
+            e.printStackTrace();
+        }
+
+    }
 
 }

@@ -19,7 +19,6 @@ public class ConnectionManager {
         if (connection == null) {
                     connection = connect(hostname, port, DBname, userName, password);
                     dbName = DBname;
-                    System.out.println("Connection successful");
 
         }
         return connection;
@@ -36,7 +35,6 @@ public class ConnectionManager {
             String connectionString = "jdbc:mariadb://" + hostname + ":" + port + "/" + DBName + "?user=" +
                     userName + "&password=" + password;
             connection = DriverManager.getConnection(connectionString);
-            //System.out.println(connectionString);
         } catch (ClassNotFoundException | SQLException e) {
             e.printStackTrace();
         }
