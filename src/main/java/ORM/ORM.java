@@ -534,16 +534,7 @@ public class ORM {
 
 
         }
-    /** Method retrieves all data pertaining to user.
-     * It will return a linked list of objects of the same type that it was given.
-     * The first object fields will be used to retrieve data.
-     *      Input - Object list of all objects who have tables in database and contain a primary key.
-     *      Output - Linked list with all information pertaining to user.
-     * ***************************************************************************************************************/
-    private List<Object>getAllFromList(List<Object> obj){
-        List<Object> result = new LinkedList<>();
-        return result;
-    }
+
     private String typeConversion(String type, Boolean reverse){
         /** Method switches between java data types and sql types.
          * By default, it does switches from java to sql types. The opposite can be achieved
@@ -626,9 +617,21 @@ public class ORM {
     }
 
     public void objectTypes(List<Object> obj){
+        /** Method is in charge of receiving all the different object types that are in the database.
+         * These object types are used to assign the values retrieved from DB into their member variables.
+         * They are then added to a linked list. This is done in the packObjectsToList method.
+         *      Input - Object list of all objects who have tables in database.
+         *      Output - Class member variable list is assigned the value given by user.
+         * ***************************************************************************************************************/
         this.list = obj;
     }
     private void packObjectsToList(ResultSet results){
+        /** Method is responsible for parsing the ResultSet and assigning the values
+         * to the corresponding Object's fields. It then appends the object to a linked list
+         * for later use.
+         *      Input - ResultSet
+         *      Output - Class member variable resultSet is assigned the ending value of this meethod.
+         * ***************************************************************************************************************/
             List<Object> finalList = new LinkedList<>();
 
         try {
@@ -676,9 +679,23 @@ public class ORM {
             resultList = finalList;
     }
     public List<Object> getAllObjects(){
+        /** Method returns all objects pertaining to a specific object given by the user.
+         *      Input - None, class variable is holding the information needed.
+         *      Output - Linked list with all objects.
+         * ***************************************************************************************************************/
         return resultList;
     }
     public void getAllPertainingToUser(Object obj){
+        /** Method retrieves all data pertaining to user by identifying the schema of the
+         * DB and retrieving all tables who have a foreign key that references the table that
+         * the object given is stored. Iteration over the foreign key column is done to identify the
+         * index of the table name that hold a fk to the pk of our object. This information is then used to build
+         * our sql string which allow for multiple JOIN statements.
+         * It will return a ResultSet which will be handed off to a method that will
+         * further parse the data and bring it together into an Object linked list.
+         *      Input - Object which is considered to be the object by which all other objects will be queried.
+         *      Output - ResultSet
+         * ***************************************************************************************************************/
         List<String> tableName = new LinkedList<String>();
         List<String> fkColumn = new LinkedList<String>();
         List<String> referenceTableName = new LinkedList<String>();
