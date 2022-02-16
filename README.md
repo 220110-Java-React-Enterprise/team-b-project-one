@@ -1,7 +1,7 @@
 # **Project 1:**
 By: David Alvarado, Maja Wirkijowska
 
-## Description
+## Description:
 
 ## Tech Stack:
   - HTTP
@@ -35,8 +35,8 @@ Using Postman as the front-end interface, the ticket kiosk is remotely available
   2. ORM can design schema on the fly
 
 ## User Stories
-  -As a user, I store JSON objects by invoking the proper endpoint (POST/Create).
-  -As a user, I can change objects by invoking the proper endpoint (PUT/Update).
-  -As a user, I can retrieve objects by invoking the proper endpoint (GET/Read).
-  -As a user, I can delete objects by invoking the proper endpoint (DELETE/Delete).
-  -As a user, I can retrieve all objects that belong to me. (transmit the user as part of the request header, and build a relation in the    database in some way to tie the objects to the user)
+  - As a user, I store JSON objects by invoking the proper endpoint (POST/Create).
+  - As a user, I can change objects by invoking the proper endpoint (PUT/Update).
+  - As a user, I can retrieve objects by invoking the proper endpoint (GET/Read).
+  - As a user, I can delete objects by invoking the proper endpoint (DELETE/Delete).
+  - As a user, I can retrieve all objects that belong to me. (transmit the user as part of the request header, and build a relation in the    database in some way to tie the objects to the user)
