@@ -18,6 +18,7 @@ By: David Alvarado, Maja Wirkijowska
 ## Project 1
 
 ### Part 1: Custom ORM
+Using Apache Maven and Java 8 and MariaDB, the ORM is able to dissect an object using reflection and annotations to produce a schema of tables that share the characteristics of the given objects. Packaged as a dependency, it is later used by the web app to persists and retrieve data from a AWS hosted database.
 
 ### Part 2: Web App
 Using Postman as the front-end interface, the ticket kiosk is remotely available on AWS and uses the Part 1: Customer ORM as a dependecy to create tables and objects on MariaDB. Java Servlets allow the web-app to store, manipulate, and retrieve objects in response to HTTP requests. 
